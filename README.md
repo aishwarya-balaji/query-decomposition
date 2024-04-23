@@ -1,36 +1,42 @@
+# What is Query Decomposition?
+Query Decomposition is a preprocessing technique in Large Language Models (LLMs) that simplifies complex queries into smaller, manageable sub-queries, enhancing the LLM's response effectiveness. This technique is applied only to complex queries, leaving simpler queries unchanged.
 
-# LangChain SubQuery Example Usage
-### This document outlines how to utilize the SubQuery class and related functionality from the provided code for querying a database of tutorial videos about a software library. The code integrates various libraries and tools to decompose complex queries into actionable sub-queries.
+## Why Decompose a Query?
+Decomposing queries allows the LLM to cover all aspects of a multifaceted user inquiry more effectively. By breaking down complex questions into simpler elements, the model can generate more accurate and comprehensive responses, synthesizing these to produce a final answer.
 
-## Classes and Methods
-The core of the implementation uses the SubQuery class to define sub-queries:
+## Query Engine Overview
+The Query Engine employs appending and fine-tuning within a LangChain framework, enhancing its capability to process queries efficiently.
 
-from langchain_core.pydantic_v1 import BaseModel, Field
+## How It Works
+Initial Setup: Initially implemented with a LlamaIndex finetuned approach, the engine was later optimized to use LangChain for its speed and ease of use.
+Execution: Users can invoke the engine individually or in batches with pre-decomposed sets of queries.
 
-class SubQuery(BaseModel):
-    """Search over a database of tutorial videos about a software library."""
-    sub_query: str = Field(\n
-        ...,\n
-        description="A very specific query against the database.",\n
-    )
-Each `SubQuery` instance represents a decomposed part of a complex user query, focusing on a single aspect necessary to form a comprehensive response.
+ Define the engine
+query_analyzer_with_examples = prompt.partial(examples=example_msgs) | llm_with_tools | parser
 
-## Query Analysis and Execution
+### Individual Invocation
+sub_qs = query_analyzer_with_examples.invoke(
+    {"question": "What is 2 + 2? Why is it not 3?"}
+)
 
-system = """You are an expert at converting user questions into database queries. \
-You have access to a database of tutorial videos about a software library for building LLM-powered applications. \
-Perform query decomposition. Given a user question, break it down into distinct sub questions that \
-you need to answer in order to answer the original question."""
+### Batch Invocation
+questions = [
+    "Where can I buy a macbook pro with M3 chip? What is the difference to the M2 chip? How much more expensive is the M3?",
+    "How can I buy tickets to the upcoming NBA game? What is the price of lower bowl seats versus nosebleeds? What is the view like at either seat?",
+    "Between a macbook and a windows machine, which is better for systems engineering? Which chips are most ideal? What is the price difference between the two?",
+]
 
-prompt = ChatPromptTemplate.from_messages([("system", system), ("human", "{question}")])
-llm = ChatOpenAI(model="gpt-4", temperature=0)
-llm_with_tools = llm.bind_tools([SubQuery])
-parser = PydanticToolsParser(tools=[SubQuery])
-query_analyzer = prompt | llm_with_tools | parser
-This setup configures a query analyzer that can take a complex question, decompose it into sub-queries, and utilize the `SubQuery` instances for further processing.
+responses = []
+for question in questions:
+    responses.append(query_analyzer_with_examples.invoke({"question": question}))
+    
+## Role in the Larger System
+The Query Engine acts as a conduit within a parallel system, passing all decomposed queries or the original query to the Routing Agent. It also sends the original query to the reranker to optimize the outputs from the Routing Agent.
 
-## Example Usage
+## Future Contributions
+Multiprocessing Integration: When a multiprocessing system is available, all inputted queries will be passed to the Query Decomposer, which will then route the appropriate (sub)queries to the Routing Agent for parallel processing.
+Self-Learning: The system will append successfully decomposed queries to the engine's example store, enhancing its capability for future queries.
 
-response = query_analyzer.invoke({"question": "how to do rag"})
-print(response)
-Replace "how to do rag" with any relevant question to your database.
+## Contributors
+@arnavchopra1864
+@aishwarya-balaji
